@@ -1,0 +1,23 @@
+[Unit]
+Description=rolebot
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/rolebot
+Restart=on-failure
+RestartSec=5s
+
+; Security hardening (optional but recommended)
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+ReadOnlyPaths=/etc/rolebot
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
+
+; vim:ft=systemd
