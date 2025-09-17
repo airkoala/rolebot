@@ -27,14 +27,16 @@ func main() {
 	// No perms except for admin
 	perm := int64(0)
 
-	_, err = dg.ApplicationCommandCreate(config.appId, "593359698800017418", &discordgo.ApplicationCommand{
-		Name:                     "roles",
-		Description:              "(Re)create the role selection menu.",
-		DefaultMemberPermissions: &perm,
-	})
-	if err != nil {
-		fmt.Printf("Cannot create slash command: %v", err)
-		panic(err)
+	for gId := range config.guilds {
+		_, err = dg.ApplicationCommandCreate(config.appId, gId, &discordgo.ApplicationCommand{
+			Name:                     "roles",
+			Description:              "(Re)create the role selection menu.",
+			DefaultMemberPermissions: &perm,
+		})
+		if err != nil {
+			fmt.Printf("Cannot create slash command: %v", err)
+			panic(err)
+		}
 	}
 
 	dg.AddHandler(func(s *discordgo.Session, _ *discordgo.Ready) {
@@ -149,7 +151,7 @@ func main() {
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Content: responseMsg,
-					Flags: discordgo.MessageFlagsEphemeral,
+					Flags:   discordgo.MessageFlagsEphemeral,
 				},
 			})
 
