@@ -9,6 +9,7 @@ import (
 
 func buildComponents(s *discordgo.Session, guildId string, guildConfig *GuildConfig) ([]discordgo.MessageComponent, error) {
 	components := make([]discordgo.MessageComponent, 0, len(guildConfig.RoleGroups))
+	components = append(components, discordgo.TextDisplay{Content: "# Pick your roles"})
 	for _, rg := range guildConfig.RoleGroups {
 		c, err := rg.toComponents(s, guildId)
 		if err != nil {
@@ -51,7 +52,7 @@ func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string) ([]dis
 		}
 	}
 
-	content := fmt.Sprintf("# %s\n%s", self.Heading, self.Description)
+	content := fmt.Sprintf("## %s\n%s", self.Heading, self.Description)
 	if self.Multiple {
 		content += "\n-# (you can have more than one but you have to toggle one at a time. (i was too lazy to code it any better))"
 	} else {
