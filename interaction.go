@@ -92,9 +92,9 @@ func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg
 			// Toggle each passed in role
 
 			if roleSet[r] {
-				rolesAdded = append(rolesAdded, r)
-			} else {
 				rolesRemoved = append(rolesRemoved, r)
+			} else {
+				rolesAdded = append(rolesAdded, r)
 			}
 
 			roleSet[r] = !roleSet[r]

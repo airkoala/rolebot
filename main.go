@@ -12,7 +12,12 @@ import (
 )
 
 func main() {
-	config, err := readConfig("config")
+	configDir := os.Getenv("CONFIG_DIR")
+	if len(configDir) == 0 {
+		configDir = "/etc/rolebot"
+	}
+
+	config, err := readConfig(configDir)
 	if err != nil {
 		panic(err)
 	}
