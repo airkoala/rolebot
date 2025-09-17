@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
@@ -17,11 +17,11 @@ func main() {
 		panic(err)
 	}
 
-	log.Printf("Config: %+v\n", config)
+	fmt.Printf("Config: %+v\n", config)
 
 	dg, err := discordgo.New("Bot " + config.token)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	// No perms except for admin
@@ -33,24 +33,54 @@ func main() {
 		DefaultMemberPermissions: &perm,
 	})
 	if err != nil {
-		log.Panicf("Cannot create slash command: %v", err)
+		fmt.Printf("Cannot create slash command: %v", err)
+		panic(err)
 	}
 
 	dg.AddHandler(func(s *discordgo.Session, _ *discordgo.Ready) {
-		log.Println("Connected.")
+		fmt.Println("Connected.")
+
+		fmt.Println("-----------------------")
+		fmt.Println("Configured guilds: ")
+		for gId, gCfg := range config.guilds {
+			guild, err := s.Guild(gId)
+			if err != nil {
+				fmt.Printf("Failed to get guild %v: %v\n", gId, err)
+				continue
+			}
+
+			managedRoles := make(map[string]bool)
+			for _, rg := range gCfg.RoleGroups {
+				for _, rId := range rg.Roles {
+					managedRoles[rId] = true
+				}
+			}
+
+			fmt.Printf("%v (%v)\n", guild.Name, gId)
+			fmt.Println("Available roles:")
+			for _, r := range guild.Roles {
+				fmt.Printf("\"%v\",  # @%v", r.ID, r.Name)
+				if managedRoles[r.ID] {
+					fmt.Print(" (managed)")
+				}
+				fmt.Print("\n")
+			}
+			fmt.Println()
+		}
+		fmt.Println("-----------------------")
 	})
 
 	// On receiving interaction
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
-			log.Println("InteractionApplicationCommand")
+			fmt.Println("InteractionApplicationCommand")
 
 			if i.ApplicationCommandData().Name == "roles" {
 				gcfg := config.guilds[i.GuildID]
 				components, err := buildComponents(s, i.GuildID, &gcfg)
 				if err != nil {
-					log.Printf("Failed to build components: %v\n", err)
+					fmt.Printf("Failed to build components: %v\n", err)
 					return
 				}
 
@@ -67,7 +97,7 @@ func main() {
 				err = s.InteractionRespond(i.Interaction, &res)
 
 				if err != nil {
-					log.Println(err)
+					fmt.Println(err)
 				}
 			}
 		case discordgo.InteractionMessageComponent:
@@ -78,14 +108,14 @@ func main() {
 
 			rgId, err := strconv.Atoi(strings.TrimPrefix(i.MessageComponentData().CustomID, "setRoles "))
 			if err != nil {
-				log.Printf("Invalid roleGroup ID: %v\n", rgId)
+				fmt.Printf("Invalid roleGroup ID: %v\n", rgId)
 				return
 			}
 
 			roleIds := i.MessageComponentData().Values
 
-			log.Printf("Setting roles for %v in %v\n", i.Member.User.ID, i.GuildID)
-			log.Printf("roleIds: %v, rgId: %v\n", roleIds, rgId)
+			fmt.Printf("Setting roles for %v in %v\n", i.Member.User.ID, i.GuildID)
+			fmt.Printf("roleIds: %v, rgId: %v\n", roleIds, rgId)
 
 			rg := &config.guilds[i.GuildID].RoleGroups[rgId]
 
@@ -111,7 +141,7 @@ func main() {
 			}
 
 			if err != nil {
-				log.Printf("Error setting roles: %v\n", err)
+				fmt.Printf("Error setting roles: %v\n", err)
 				responseMsg = "Error setting roles."
 			}
 
@@ -124,7 +154,7 @@ func main() {
 			})
 
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 			}
 		}
 	})
@@ -133,10 +163,10 @@ func main() {
 
 	err = dg.Open()
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
-	log.Println("Started.")
+	fmt.Println("Started.")
 
 	// Set channel to send signals to
 	sc := make(chan os.Signal, 1)

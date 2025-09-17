@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
@@ -32,7 +31,7 @@ func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string) ([]dis
 
 	roles, err := s.GuildRoles(guildId)
 	if err != nil {
-		log.Printf("Failed to fetch roles for guild %v.\n", guildId)
+		fmt.Printf("Failed to fetch roles for guild %v.\n", guildId)
 		return []discordgo.MessageComponent{}, err
 	}
 
@@ -85,7 +84,7 @@ func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg
 	for _, r := range member.Roles {
 		roleSet[r] = true
 	}
-	log.Printf("roleSet: %v, rg: %v\n", roleSet, rg)
+	fmt.Printf("roleSet: %v, rg: %v\n", roleSet, rg)
 
 	if rg.Multiple {
 		for _, r := range roleIds {
@@ -125,12 +124,12 @@ func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg
 		}
 	}
 
-	log.Printf("member: %+v, newRoles: %v\n", member, newRoles)
+	fmt.Printf("member: %+v, newRoles: %v\n", member, newRoles)
 	data := discordgo.GuildMemberParams{
 		Roles: &newRoles,
 	}
 	_, err := s.GuildMemberEdit(guildId, member.User.ID, &data)
-	log.Printf("member.GuildID: %v, member.User.ID: %v\n", member.GuildID, member.User.ID)
+	fmt.Printf("member.GuildID: %v, member.User.ID: %v\n", member.GuildID, member.User.ID)
 
 	return rolesAdded, rolesRemoved, err
 }
