@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func buildComponents(s *discordgo.Session, guildId string, guildConfig *GuildConfig) ([]discordgo.MessageComponent, error) {
+func buildComponents(s *discordgo.Session, guildId string, guildConfig *GuildConfig, member *discordgo.Member) ([]discordgo.MessageComponent, error) {
 	components := make([]discordgo.MessageComponent, 0, len(guildConfig.RoleGroups))
 	components = append(components, discordgo.TextDisplay{Content: "# Pick your roles"})
 	for _, rg := range guildConfig.RoleGroups {
-		c, err := rg.toComponents(s, guildId)
+		c, err := rg.toComponents(s, guildId, member)
 		if err != nil {
 			return components, err
 		}
@@ -22,13 +23,21 @@ func buildComponents(s *discordgo.Session, guildId string, guildConfig *GuildCon
 	return components, nil
 }
 
-func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string) ([]discordgo.MessageComponent, error) {
+type RoleSet map[string]bool
+
+func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string, member *discordgo.Member) ([]discordgo.MessageComponent, error) {
+
+	roleset := make(RoleSet)
+	for _, r := range member.Roles {
+		roleset[r] = true
+	}
+
 	minValues := 0
 	maxValues := 1
-	// if self.Multiple {
-	// 	// Discord only supports 25 max for dropdown interacts
-	// 	maxValues = min(len(self.Roles), 25)
-	// }
+	if self.Multiple {
+		// Discord only supports 25 max for dropdown interacts
+		maxValues = min(len(self.Roles), 25)
+	}
 
 	roles, err := s.GuildRoles(guildId)
 	if err != nil {
@@ -46,9 +55,16 @@ func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string) ([]dis
 			}
 		}
 
+		// fill in picked roles
+		set := false
+		if roleset[rId] {
+			set = true
+		}
+
 		options[i] = discordgo.SelectMenuOption{
-			Label: rName,
-			Value: rId,
+			Label:   rName,
+			Value:   rId,
+			Default: set,
 		}
 	}
 
@@ -71,14 +87,7 @@ func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string) ([]dis
 	}, nil
 }
 
-type RoleSet map[string]bool
-
 func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg *RoleGroup, roleIds []string) ([]string, []string, error) {
-	if len(roleIds) == 0 {
-		// no action
-		return []string{}, []string{}, nil
-	}
-
 	rolesAdded := make([]string, 0)
 	rolesRemoved := make([]string, 0)
 	roleSet := make(RoleSet)
@@ -87,31 +96,35 @@ func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg
 	}
 
 	if rg.Multiple {
-		for _, r := range roleIds {
-			// Toggle each passed in role
+		for _, rid := range rg.Roles {
+			selected := slices.Contains(roleIds, rid)
 
-			if roleSet[r] {
-				rolesRemoved = append(rolesRemoved, r)
-			} else {
-				rolesAdded = append(rolesAdded, r)
+			if roleSet[rid] && !selected {
+				rolesRemoved = append(rolesRemoved, rid)
+				roleSet[rid] = false // TODO: perhaps roleSet needs to be treated differently, repeating this is a bit ugly
+			} else if !roleSet[rid] && selected {
+				rolesAdded = append(rolesAdded, rid)
+				roleSet[rid] = true
 			}
-
-			roleSet[r] = !roleSet[r]
 		}
 	} else {
-		for _, r := range rg.Roles {
-			// Only toggle the selected role. Disable everything else in the group.
-			if r == roleIds[0] {
-				if roleSet[r] {
-					rolesRemoved = append(rolesRemoved, r)
-				} else {
-					rolesAdded = append(rolesAdded, r)
+		if len(roleIds) < 1 {
+			for _, rid := range rg.Roles {
+				if roleSet[rid] {
+					rolesRemoved = append(rolesRemoved, rid)
+					roleSet[rid] = false
 				}
-				roleSet[r] = !roleSet[r]
-			} else {
-				if roleSet[r] {
-					rolesRemoved = append(rolesRemoved, r)
-					roleSet[r] = false
+			}
+
+		} else {
+			selected := roleIds[0]
+			for _, rid := range rg.Roles {
+				if roleSet[rid] && !(selected == rid) {
+					rolesRemoved = append(rolesRemoved, rid)
+					roleSet[rid] = false
+				} else if !roleSet[rid] && selected == rid {
+					rolesAdded = append(rolesAdded, rid)
+					roleSet[rid] = true
 				}
 			}
 		}
@@ -130,7 +143,7 @@ func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg
 	_, err := s.GuildMemberEdit(guildId, member.User.ID, &data)
 
 	fmt.Printf("Roles changed for @%v (%v):", member.User.Username, member.User.ID)
-    fmt.Printf("rolesAdded: %v, rolesRemoved: %v\n", rolesAdded, rolesRemoved)
+	fmt.Printf("rolesAdded: %v, rolesRemoved: %v\n", rolesAdded, rolesRemoved)
 
 	return rolesAdded, rolesRemoved, err
 }

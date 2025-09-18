@@ -84,20 +84,26 @@ func main() {
 			if i.ApplicationCommandData().Name == "roles" {
 				fmt.Printf("/roles executed in guild %v by %v.\n", i.GuildID, i.Member.User.ID)
 
-				gcfg := config.guilds[i.GuildID]
-				components, err := buildComponents(s, i.GuildID, &gcfg)
-				if err != nil {
-					fmt.Printf("Failed to build components: %v\n", err)
-					return
+				components := []discordgo.MessageComponent{
+					discordgo.ActionsRow{
+						Components: []discordgo.MessageComponent{
+							discordgo.Button{
+								Label:    "Prompt the role selection wizard",
+								Style:    discordgo.PrimaryButton,
+								CustomID: "promptWizard",
+								Emoji: &discordgo.ComponentEmoji{
+									Name: "🧙🏽",
+								},
+							},
+						},
+					},
 				}
 
 				res := discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
 						Flags: discordgo.MessageFlagsIsComponentsV2,
-						// Content: "asdf",
 						Components: components,
-						// Components: components,
 					},
 				}
 
@@ -108,60 +114,78 @@ func main() {
 				}
 			}
 		case discordgo.InteractionMessageComponent:
-			if !strings.HasPrefix(i.MessageComponentData().CustomID, "setRoles ") {
-				// all selection dropdowns have customId in the form `setRoles <rgId>`
-				return
-			}
+			switch strings.Split(i.MessageComponentData().CustomID, " ")[0] {
+			case "promptWizard":
+				fmt.Println("got prompt wizard")
 
-			rgId, err := strconv.Atoi(strings.TrimPrefix(i.MessageComponentData().CustomID, "setRoles "))
-			if err != nil {
-				fmt.Printf("Invalid roleGroup ID: %v\n", rgId)
-				return
-			}
-
-			roleIds := i.MessageComponentData().Values
-
-			fmt.Printf("Setting roles for %v in %v\n", i.Member.User.ID, i.GuildID)
-			fmt.Printf("roleIds: %v, rgId: %v\n", roleIds, rgId)
-
-			rg := &config.guilds[i.GuildID].RoleGroups[rgId]
-
-			added, removed, err := setRoles(s, i.Member, i.GuildID, rg, roleIds)
-
-			responseMsg := ""
-			if len(added) > 0 {
-				responseMsg += "Roles added:\n"
-				for _, rId := range added {
-					responseMsg += "* <@&" + rId + ">\n"
+				gcfg := config.guilds[i.GuildID]
+				components, err := buildComponents(s, i.GuildID, &gcfg, i.Member)
+				if err != nil {
+					fmt.Printf("Failed to build components: %v\n", err)
+					return
 				}
-			}
 
-			if len(removed) > 0 {
-				responseMsg += "Roles removed:\n"
-				for _, rId := range removed {
-					responseMsg += "* <@&" + rId + ">\n"
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Flags:      discordgo.MessageFlagsEphemeral | discordgo.MessageFlagsIsComponentsV2,
+						Components: components,
+					},
+				})
+			case "setRoles":
+				fmt.Println("got set roles")
+				rgId, err := strconv.Atoi(strings.TrimPrefix(i.MessageComponentData().CustomID, "setRoles "))
+				if err != nil {
+					fmt.Printf("Invalid roleGroup ID: %v\n", rgId)
+					return
 				}
-			}
 
-			if len(responseMsg) == 0 {
-				responseMsg = "No change."
-			}
+				roleIds := i.MessageComponentData().Values
 
-			if err != nil {
-				fmt.Printf("Error setting roles: %v\n", err)
-				responseMsg = "Error setting roles."
-			}
+				fmt.Printf("Setting roles for %v in %v\n", i.Member.User.ID, i.GuildID)
+				fmt.Printf("roleIds: %v, rgId: %v\n", roleIds, rgId)
 
-			err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: responseMsg,
-					Flags:   discordgo.MessageFlagsEphemeral,
-				},
-			})
+				rg := &config.guilds[i.GuildID].RoleGroups[rgId]
 
-			if err != nil {
-				fmt.Println(err)
+				added, removed, err := setRoles(s, i.Member, i.GuildID, rg, roleIds)
+
+				responseMsg := ""
+				if len(added) > 0 {
+					responseMsg += "Roles added:\n"
+					for _, rId := range added {
+						responseMsg += "* <@&" + rId + ">\n"
+					}
+				}
+
+				if len(removed) > 0 {
+					responseMsg += "Roles removed:\n"
+					for _, rId := range removed {
+						responseMsg += "* <@&" + rId + ">\n"
+					}
+				}
+
+				if len(responseMsg) == 0 {
+					responseMsg = "No change."
+				}
+
+				if err != nil {
+					fmt.Printf("Error setting roles: %v\n", err)
+					responseMsg = "Error setting roles."
+				}
+
+				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: responseMsg,
+						Flags:   discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				if err != nil {
+					fmt.Println(err)
+				}
+			default:
+				return // should never be reached though
 			}
 		}
 	})
