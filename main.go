@@ -116,8 +116,6 @@ func main() {
 		case discordgo.InteractionMessageComponent:
 			switch strings.Split(i.MessageComponentData().CustomID, " ")[0] {
 			case "promptWizard":
-				fmt.Println("got prompt wizard")
-
 				gcfg := config.guilds[i.GuildID]
 				components, err := buildComponents(s, i.GuildID, &gcfg, i.Member)
 				if err != nil {
@@ -133,7 +131,6 @@ func main() {
 					},
 				})
 			case "setRoles":
-				fmt.Println("got set roles")
 				rgId, err := strconv.Atoi(strings.TrimPrefix(i.MessageComponentData().CustomID, "setRoles "))
 				if err != nil {
 					fmt.Printf("Invalid roleGroup ID: %v\n", rgId)
