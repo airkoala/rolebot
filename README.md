@@ -3,7 +3,7 @@
 a super simple bot for setting roles on discord. meant to be self hosted and used on directly managed servers only.
 
 ## Build and install
-build the go module (ie. `go build`). a systemd service is included (`rolebot.service`). install this into `/etc/systemd/system/` or wherever you'd like to place it then enable it for autostarting and restarting on fail. the `rolebot` binary must be installed to `/usr/local/bin/rolebot`.
+build the go module with `go build` and then install the binary to `/usr/local/bin/rolebot` for the included systemd service (`rolebot.service`) to work. the service should be installed into `/etc/systemd/system/rolebot.service` or wherever and then enabled with `systemctl enable --now rolebot`.
 
 ## Config
 the default config directory is `/etc/rolebot/`. the environment variable `CONFIG_DIR` can be set for an alternate directory.
@@ -18,7 +18,7 @@ config directory structure:
 ```
 
 ### `guilds/<guild_id>.toml`
-per-guild configuration file of a list of role groups. sample config:
+per-guild configuration as a list of role groups. example config:
 
 ```toml
 # /etc/rolebot/guilds/1234.toml
