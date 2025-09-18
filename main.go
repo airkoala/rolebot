@@ -81,9 +81,9 @@ func main() {
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
-			fmt.Println("InteractionApplicationCommand")
-
 			if i.ApplicationCommandData().Name == "roles" {
+				fmt.Printf("/roles executed in guild %v by %v.\n", i.GuildID, i.Member.User.ID)
+
 				gcfg := config.guilds[i.GuildID]
 				components, err := buildComponents(s, i.GuildID, &gcfg)
 				if err != nil {
