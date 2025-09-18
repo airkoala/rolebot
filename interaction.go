@@ -70,7 +70,7 @@ func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string, member
 
 	content := fmt.Sprintf("## %s\n%s", self.Heading, self.Description)
 	if self.Multiple {
-		content += "\n-# (you can have more than one but you have to toggle one at a time. (i was too lazy to code it any better))"
+		content += "\n-# (you can have more than one)"
 	} else {
 		content += "\n-# (only one allowed)"
 	}
