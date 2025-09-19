@@ -92,7 +92,7 @@ func main() {
 								Style:    discordgo.PrimaryButton,
 								CustomID: "promptWizard",
 								Emoji: &discordgo.ComponentEmoji{
-									Name: "🧙🏽",
+									Name: "🧙‍♀️",
 								},
 							},
 						},
@@ -116,6 +116,7 @@ func main() {
 		case discordgo.InteractionMessageComponent:
 			switch strings.Split(i.MessageComponentData().CustomID, " ")[0] {
 			case "promptWizard":
+				fmt.Printf("promptWizard called by %v in %v.\n", i.Member.User.Username, i.GuildID)
 				gcfg := config.guilds[i.GuildID]
 				components, err := buildComponents(s, i.GuildID, &gcfg, i.Member)
 				if err != nil {
@@ -130,6 +131,10 @@ func main() {
 						Components: components,
 					},
 				})
+
+				if err != nil {
+					fmt.Printf("Interaction response failed: %v", err)
+				}
 			case "setRoles":
 				rgId, err := strconv.Atoi(strings.TrimPrefix(i.MessageComponentData().CustomID, "setRoles "))
 				if err != nil {
