@@ -84,33 +84,26 @@ func main() {
 			if i.ApplicationCommandData().Name == "roles" {
 				fmt.Printf("/roles executed in guild %v by %v.\n", i.GuildID, i.Member.User.ID)
 
-				components := []discordgo.MessageComponent{
-					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{
-							discordgo.Button{
-								Label:    "Prompt the role selection wizard",
-								Style:    discordgo.PrimaryButton,
-								CustomID: "promptWizard",
-								Emoji: &discordgo.ComponentEmoji{
-									Name: "🧙‍♀️",
-								},
-							},
+				gCfg, found := config.guilds[i.GuildID]
+				if !found {
+					err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Flags:   discordgo.MessageFlagsEphemeral,
+							Content: "No config found for this server.",
 						},
-					},
+					})
+					if err != nil {
+						fmt.Println("Interaction response failed:", err)
+						return
+					}
 				}
 
-				res := discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Flags: discordgo.MessageFlagsIsComponentsV2,
-						Components: components,
-					},
-				}
-
+				res := getWizardResponse(&gCfg)
 				err = s.InteractionRespond(i.Interaction, &res)
 
 				if err != nil {
-					fmt.Println(err)
+					fmt.Println("Interaction response failed:", err)
 				}
 			}
 		case discordgo.InteractionMessageComponent:
@@ -118,9 +111,9 @@ func main() {
 			case "promptWizard":
 				fmt.Printf("promptWizard called by %v in %v.\n", i.Member.User.Username, i.GuildID)
 				gcfg := config.guilds[i.GuildID]
-				components, err := buildComponents(s, i.GuildID, &gcfg, i.Member)
+				components, err := getWizardComponents(s, i.GuildID, &gcfg, i.Member)
 				if err != nil {
-					fmt.Printf("Failed to build components: %v\n", err)
+					fmt.Printf("Failed to build wizard components: %v\n", err)
 					return
 				}
 

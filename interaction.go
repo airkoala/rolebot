@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func buildComponents(s *discordgo.Session, guildId string, guildConfig *GuildConfig, member *discordgo.Member) ([]discordgo.MessageComponent, error) {
+func getWizardComponents(s *discordgo.Session, guildId string, guildConfig *GuildConfig, member *discordgo.Member) ([]discordgo.MessageComponent, error) {
 	components := make([]discordgo.MessageComponent, 0, len(guildConfig.RoleGroups))
 	components = append(components, discordgo.TextDisplay{Content: "# Pick your roles"})
 	for _, rg := range guildConfig.RoleGroups {
