@@ -6,12 +6,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func getWizardResponse(gCfg *GuildConfig) discordgo.InteractionResponse {
+func buildRolesList(gCfg *GuildConfig) discordgo.InteractionResponse {
 	content := "# Available Roles:\n"
 
 	for _, rolegroup := range gCfg.RoleGroups {
 		content += "## " + rolegroup.Heading + "\n"
-		content += rolegroup.Description + "\n"
+		content += "> " + rolegroup.Description + "\n"
 
 		for _, rId := range rolegroup.Roles {
 			content += fmt.Sprintf("<@&%v> ", rId)

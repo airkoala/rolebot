@@ -99,7 +99,7 @@ func main() {
 					}
 				}
 
-				res := getWizardResponse(&gCfg)
+				res := buildRolesList(&gCfg)
 				err = s.InteractionRespond(i.Interaction, &res)
 
 				if err != nil {
