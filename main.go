@@ -111,22 +111,34 @@ func main() {
 			case "promptWizard":
 				fmt.Printf("promptWizard called by %v in %v.\n", i.Member.User.Username, i.GuildID)
 				gcfg := config.guilds[i.GuildID]
+
+				// Show a loading state. Discord API invalidates interaction token if not ACKed
+				// within 3 seconds.
+				err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Flags: discordgo.MessageFlagsEphemeral,
+					},
+				})
+
+				if err != nil {
+					fmt.Println("Interaction response failed:", err)
+				}
+
 				components, err := getWizardComponents(s, i.GuildID, &gcfg, i.Member)
 				if err != nil {
 					fmt.Printf("Failed to build wizard components: %v\n", err)
 					return
 				}
 
-				err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Flags:      discordgo.MessageFlagsEphemeral | discordgo.MessageFlagsIsComponentsV2,
-						Components: components,
-					},
+				// err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				_, err = s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+					Flags:      discordgo.MessageFlagsEphemeral | discordgo.MessageFlagsIsComponentsV2,
+					Components: components,
 				})
 
 				if err != nil {
-					fmt.Printf("Interaction response failed: %v", err)
+					fmt.Println("Interaction response failed:", err)
 				}
 			case "setRoles":
 				rgId, err := strconv.Atoi(strings.TrimPrefix(i.MessageComponentData().CustomID, "setRoles "))
