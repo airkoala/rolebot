@@ -87,51 +87,28 @@ func (self *RoleGroup) toComponents(s *discordgo.Session, guildId string, member
 	}, nil
 }
 
-func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg *RoleGroup, roleIds []string) ([]string, []string, error) {
+func setRoles(s *discordgo.Session, member *discordgo.Member, guildId string, rg *RoleGroup, selectedRoleIds []string) ([]string, []string, error) {
 	rolesAdded := make([]string, 0)
 	rolesRemoved := make([]string, 0)
-	roleSet := make(RoleSet)
+	newRolesSet := make(RoleSet)
 	for _, r := range member.Roles {
-		roleSet[r] = true
+		newRolesSet[r] = true
 	}
 
-	if rg.Multiple {
-		for _, rid := range rg.Roles {
-			selected := slices.Contains(roleIds, rid)
+	for _, rid := range rg.Roles {
+		isSelected := slices.Contains(selectedRoleIds, rid)
 
-			if roleSet[rid] && !selected {
-				rolesRemoved = append(rolesRemoved, rid)
-				roleSet[rid] = false // TODO: perhaps roleSet needs to be treated differently, repeating this is a bit ugly
-			} else if !roleSet[rid] && selected {
-				rolesAdded = append(rolesAdded, rid)
-				roleSet[rid] = true
-			}
-		}
-	} else {
-		if len(roleIds) < 1 {
-			for _, rid := range rg.Roles {
-				if roleSet[rid] {
-					rolesRemoved = append(rolesRemoved, rid)
-					roleSet[rid] = false
-				}
-			}
-
-		} else {
-			selected := roleIds[0]
-			for _, rid := range rg.Roles {
-				if roleSet[rid] && !(selected == rid) {
-					rolesRemoved = append(rolesRemoved, rid)
-					roleSet[rid] = false
-				} else if !roleSet[rid] && selected == rid {
-					rolesAdded = append(rolesAdded, rid)
-					roleSet[rid] = true
-				}
-			}
+		if newRolesSet[rid] && !isSelected {
+			rolesRemoved = append(rolesRemoved, rid)
+			newRolesSet[rid] = isSelected
+		} else if !newRolesSet[rid] && isSelected {
+			rolesAdded = append(rolesAdded, rid)
+			newRolesSet[rid] = isSelected
 		}
 	}
 
 	newRoles := make([]string, 0)
-	for r, enabled := range roleSet {
+	for r, enabled := range newRolesSet {
 		if enabled {
 			newRoles = append(newRoles, r)
 		}
