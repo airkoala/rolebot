@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This repo has been moved to Codeberg: https://codeberg.org/airkoala/rolebot
+
 # Rolebot
 
 a super simple bot for setting roles on discord. meant to be self hosted and used on directly managed servers only.
